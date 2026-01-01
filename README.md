@@ -35,12 +35,12 @@ The problem: finding the right ISF file manually is tedious. You need to:
 
 ## Features
 
-- 🔄 **Automatic Updates**: Fetches and merges ISF banners from multiple sources
-- ⚡ **Fast Caching**: Local cache with configurable TTL to minimize network requests
-- 🔒 **Safe Concurrency**: File locking prevents race conditions during updates
-- 📦 **XDG Compliant**: Follows XDG Base Directory Specification
-- 🛠️ **Easy Integration**: Simple CLI that works seamlessly with Volatility3
-- ⚙️ **Configurable**: Custom sources via simple config file
+- **Automatic Updates**: Fetches and merges ISF banners from multiple sources
+- **Fast Caching**: Local cache with configurable TTL to minimize network requests
+- **Safe Concurrency**: File locking prevents race conditions during updates
+- **XDG Compliant**: Follows XDG Base Directory Specification
+- **Easy Integration**: Simple CLI that works seamlessly with Volatility3
+- **Configurable**: Custom sources via simple config file
 
 ## Quick Start
 
