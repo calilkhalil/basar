@@ -226,8 +226,8 @@ func TestStats(t *testing.T) {
 		{
 			name: "invalid JSON",
 			setup: func(t *testing.T, cfg *config.Config) {
-				os.MkdirAll(cfg.CacheDir, 0755)
-				os.WriteFile(cfg.CacheFile, []byte("invalid json"), 0644)
+				_ = os.MkdirAll(cfg.CacheDir, 0755)
+				_ = os.WriteFile(cfg.CacheFile, []byte("invalid json"), 0644)
 			},
 			expectValid: false,
 		},
@@ -328,8 +328,8 @@ func TestAcquireLock(t *testing.T) {
 		{
 			name: "fresh lock (should fail)",
 			setup: func(t *testing.T, cfg *config.Config) {
-				os.MkdirAll(cfg.CacheDir, 0755)
-				os.WriteFile(cfg.LockFile, []byte("12345"), 0644)
+				_ = os.MkdirAll(cfg.CacheDir, 0755)
+				_ = os.WriteFile(cfg.LockFile, []byte("12345"), 0644)
 			},
 			wantErr: true,
 		},
@@ -642,7 +642,7 @@ func TestSmartUpdateNoChange(t *testing.T) {
 	ctx := context.Background()
 
 	// First update
-	c.Update(ctx, true)
+	_ = c.Update(ctx, true)
 
 	// Second smart update - local files always report modified
 	// (conditional requests only work with HTTP)
@@ -730,7 +730,7 @@ func TestConfigureVolatility3AlreadyExists(t *testing.T) {
 
 	// Create existing config with remote_isf_url
 	vol3Config := filepath.Join(home, ".volatility3.yaml")
-	os.WriteFile(vol3Config, []byte("remote_isf_url: http://other.com\n"), 0644)
+	_ = os.WriteFile(vol3Config, []byte("remote_isf_url: http://other.com\n"), 0644)
 
 	c := New(cfg)
 
