@@ -362,8 +362,10 @@ func TestFetchLocal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create test file: %v", err)
 	}
-	json.NewEncoder(f).Encode(data)
-	f.Close()
+	if err := json.NewEncoder(f).Encode(data); err != nil {
+		t.Fatalf("failed to encode data: %v", err)
+	}
+	_ = f.Close()
 
 	fetcher := New()
 	ctx := context.Background()
@@ -391,8 +393,10 @@ func TestFetchLocalFileURL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create test file: %v", err)
 	}
-	json.NewEncoder(f).Encode(data)
-	f.Close()
+	if err := json.NewEncoder(f).Encode(data); err != nil {
+		t.Fatalf("failed to encode data: %v", err)
+	}
+	_ = f.Close()
 
 	fetcher := New()
 	ctx := context.Background()
@@ -574,8 +578,8 @@ func TestFetchLocalHomePath(t *testing.T) {
 	testFile := filepath.Join(tmpDir, "test.json")
 	data := &BannerData{Version: 1, Linux: map[string][]string{}}
 	f, _ := os.Create(testFile)
-	json.NewEncoder(f).Encode(data)
-	f.Close()
+	_ = json.NewEncoder(f).Encode(data)
+	_ = f.Close()
 
 	// Create path relative to home
 	relPath := "~" + testFile[len(home):]

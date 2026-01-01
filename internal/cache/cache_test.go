@@ -101,7 +101,7 @@ func TestIsValid(t *testing.T) {
 				createTestBannerFile(t, cfg.CacheFile)
 				// Set mtime to 2 hours ago
 				oldTime := time.Now().Add(-2 * time.Hour)
-				os.Chtimes(cfg.CacheFile, oldTime, oldTime)
+				_ = os.Chtimes(cfg.CacheFile, oldTime, oldTime)
 			},
 			ttl:      1 * time.Hour,
 			expected: false,
@@ -317,11 +317,11 @@ func TestAcquireLock(t *testing.T) {
 		{
 			name: "stale lock (should acquire)",
 			setup: func(t *testing.T, cfg *config.Config) {
-				os.MkdirAll(cfg.CacheDir, 0755)
-				os.WriteFile(cfg.LockFile, []byte("12345"), 0644)
+				_ = os.MkdirAll(cfg.CacheDir, 0755)
+				_ = os.WriteFile(cfg.LockFile, []byte("12345"), 0644)
 				// Set mtime to 10 minutes ago (beyond LockTimeout)
 				oldTime := time.Now().Add(-10 * time.Minute)
-				os.Chtimes(cfg.LockFile, oldTime, oldTime)
+				_ = os.Chtimes(cfg.LockFile, oldTime, oldTime)
 			},
 			wantErr: false,
 		},
@@ -574,8 +574,8 @@ func TestUpdateMergesMultipleSources(t *testing.T) {
 		},
 	}
 	f1, _ := os.Create(source1)
-	json.NewEncoder(f1).Encode(data1)
-	f1.Close()
+	_ = json.NewEncoder(f1).Encode(data1)
+	_ = f1.Close()
 
 	// Source 2
 	data2 := &fetcher.BannerData{
@@ -585,8 +585,8 @@ func TestUpdateMergesMultipleSources(t *testing.T) {
 		},
 	}
 	f2, _ := os.Create(source2)
-	json.NewEncoder(f2).Encode(data2)
-	f2.Close()
+	_ = json.NewEncoder(f2).Encode(data2)
+	_ = f2.Close()
 
 	cfg.Sources = []string{source1, source2}
 
