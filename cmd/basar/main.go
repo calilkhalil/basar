@@ -200,7 +200,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 		stats := c.Stats()
 		enc := json.NewEncoder(stdout)
 		enc.SetIndent("", "  ")
-		enc.Encode(stats)
+		if err := enc.Encode(stats); err != nil {
+			fmt.Fprintf(stderr, "basar: encoding stats: %v\n", err)
+			return exitError
+		}
 		return exitOK
 	}
 

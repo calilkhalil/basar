@@ -101,7 +101,7 @@ func TestIsValid(t *testing.T) {
 				createTestBannerFile(t, cfg.CacheFile)
 				// Set mtime to 2 hours ago
 				oldTime := time.Now().Add(-2 * time.Hour)
-				os.Chtimes(cfg.CacheFile, oldTime, oldTime)
+				_ = os.Chtimes(cfg.CacheFile, oldTime, oldTime)
 			},
 			ttl:      1 * time.Hour,
 			expected: false,
@@ -226,8 +226,8 @@ func TestStats(t *testing.T) {
 		{
 			name: "invalid JSON",
 			setup: func(t *testing.T, cfg *config.Config) {
-				os.MkdirAll(cfg.CacheDir, 0755)
-				os.WriteFile(cfg.CacheFile, []byte("invalid json"), 0644)
+				_ = os.MkdirAll(cfg.CacheDir, 0755)
+				_ = os.WriteFile(cfg.CacheFile, []byte("invalid json"), 0644)
 			},
 			expectValid: false,
 		},
@@ -317,19 +317,19 @@ func TestAcquireLock(t *testing.T) {
 		{
 			name: "stale lock (should acquire)",
 			setup: func(t *testing.T, cfg *config.Config) {
-				os.MkdirAll(cfg.CacheDir, 0755)
-				os.WriteFile(cfg.LockFile, []byte("12345"), 0644)
+				_ = os.MkdirAll(cfg.CacheDir, 0755)
+				_ = os.WriteFile(cfg.LockFile, []byte("12345"), 0644)
 				// Set mtime to 10 minutes ago (beyond LockTimeout)
 				oldTime := time.Now().Add(-10 * time.Minute)
-				os.Chtimes(cfg.LockFile, oldTime, oldTime)
+				_ = os.Chtimes(cfg.LockFile, oldTime, oldTime)
 			},
 			wantErr: false,
 		},
 		{
 			name: "fresh lock (should fail)",
 			setup: func(t *testing.T, cfg *config.Config) {
-				os.MkdirAll(cfg.CacheDir, 0755)
-				os.WriteFile(cfg.LockFile, []byte("12345"), 0644)
+				_ = os.MkdirAll(cfg.CacheDir, 0755)
+				_ = os.WriteFile(cfg.LockFile, []byte("12345"), 0644)
 			},
 			wantErr: true,
 		},
@@ -574,8 +574,8 @@ func TestUpdateMergesMultipleSources(t *testing.T) {
 		},
 	}
 	f1, _ := os.Create(source1)
-	json.NewEncoder(f1).Encode(data1)
-	f1.Close()
+	_ = json.NewEncoder(f1).Encode(data1)
+	_ = f1.Close()
 
 	// Source 2
 	data2 := &fetcher.BannerData{
@@ -585,8 +585,8 @@ func TestUpdateMergesMultipleSources(t *testing.T) {
 		},
 	}
 	f2, _ := os.Create(source2)
-	json.NewEncoder(f2).Encode(data2)
-	f2.Close()
+	_ = json.NewEncoder(f2).Encode(data2)
+	_ = f2.Close()
 
 	cfg.Sources = []string{source1, source2}
 
@@ -642,7 +642,7 @@ func TestSmartUpdateNoChange(t *testing.T) {
 	ctx := context.Background()
 
 	// First update
-	c.Update(ctx, true)
+	_ = c.Update(ctx, true)
 
 	// Second smart update - local files always report modified
 	// (conditional requests only work with HTTP)
@@ -692,10 +692,16 @@ func TestConfigureVolatility3(t *testing.T) {
 	cfg := testConfig(t)
 
 	// Point vol3 config to temp dir
+	// Set both HOME (Unix) and USERPROFILE (Windows) for cross-platform compatibility
 	home := cfg.CacheDir // Use temp dir as fake home
 	origHome := os.Getenv("HOME")
+	origUserProfile := os.Getenv("USERPROFILE")
 	os.Setenv("HOME", home)
-	defer os.Setenv("HOME", origHome)
+	os.Setenv("USERPROFILE", home)
+	defer func() {
+		os.Setenv("HOME", origHome)
+		os.Setenv("USERPROFILE", origUserProfile)
+	}()
 
 	c := New(cfg)
 
@@ -723,14 +729,20 @@ func TestConfigureVolatility3(t *testing.T) {
 func TestConfigureVolatility3AlreadyExists(t *testing.T) {
 	cfg := testConfig(t)
 
+	// Set both HOME (Unix) and USERPROFILE (Windows) for cross-platform compatibility
 	home := cfg.CacheDir
 	origHome := os.Getenv("HOME")
+	origUserProfile := os.Getenv("USERPROFILE")
 	os.Setenv("HOME", home)
-	defer os.Setenv("HOME", origHome)
+	os.Setenv("USERPROFILE", home)
+	defer func() {
+		os.Setenv("HOME", origHome)
+		os.Setenv("USERPROFILE", origUserProfile)
+	}()
 
 	// Create existing config with remote_isf_url
 	vol3Config := filepath.Join(home, ".volatility3.yaml")
-	os.WriteFile(vol3Config, []byte("remote_isf_url: http://other.com\n"), 0644)
+	_ = os.WriteFile(vol3Config, []byte("remote_isf_url: http://other.com\n"), 0644)
 
 	c := New(cfg)
 

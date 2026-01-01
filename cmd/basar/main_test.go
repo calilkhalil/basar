@@ -485,8 +485,8 @@ func TestRunUpdateNoSources(t *testing.T) {
 
 	// Create config with non-existent source
 	configDir := filepath.Dir(env.configFile)
-	os.MkdirAll(configDir, 0755)
-	os.WriteFile(env.configFile, []byte("/nonexistent/file.json\n"), 0644)
+	_ = os.MkdirAll(configDir, 0755)
+	_ = os.WriteFile(env.configFile, []byte("/nonexistent/file.json\n"), 0644)
 
 	var stdout, stderr bytes.Buffer
 	code := run([]string{"--update"}, &stdout, &stderr)
@@ -525,8 +525,8 @@ func TestRunPathNoCache(t *testing.T) {
 
 	// Create config with non-existent source (so ensure fails)
 	configDir := filepath.Dir(env.configFile)
-	os.MkdirAll(configDir, 0755)
-	os.WriteFile(env.configFile, []byte("/nonexistent/file.json\n"), 0644)
+	_ = os.MkdirAll(configDir, 0755)
+	_ = os.WriteFile(env.configFile, []byte("/nonexistent/file.json\n"), 0644)
 
 	var stdout, stderr bytes.Buffer
 	code := run([]string{"-p"}, &stdout, &stderr)

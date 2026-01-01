@@ -261,7 +261,7 @@ func TestFetchHTTP(t *testing.T) {
 				"Linux version 5.15.0": {"https://example.com/5.15.0.json"},
 			},
 		}
-		json.NewEncoder(w).Encode(data)
+		_ = json.NewEncoder(w).Encode(data)
 	}))
 	defer server.Close()
 
@@ -299,7 +299,7 @@ func TestFetchHTTPNotFound(t *testing.T) {
 
 func TestFetchHTTPInvalidJSON(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("invalid json"))
+		_, _ = w.Write([]byte("invalid json"))
 	}))
 	defer server.Close()
 
@@ -331,7 +331,7 @@ func TestFetchHTTPContextCanceled(t *testing.T) {
 	// Create a slow server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(100 * time.Millisecond)
-		json.NewEncoder(w).Encode(&BannerData{Version: 1})
+		_ = json.NewEncoder(w).Encode(&BannerData{Version: 1})
 	}))
 	defer server.Close()
 
@@ -362,8 +362,10 @@ func TestFetchLocal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create test file: %v", err)
 	}
-	json.NewEncoder(f).Encode(data)
-	f.Close()
+	if err := json.NewEncoder(f).Encode(data); err != nil {
+		t.Fatalf("failed to encode data: %v", err)
+	}
+	_ = f.Close()
 
 	fetcher := New()
 	ctx := context.Background()
@@ -391,8 +393,10 @@ func TestFetchLocalFileURL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create test file: %v", err)
 	}
-	json.NewEncoder(f).Encode(data)
-	f.Close()
+	if err := json.NewEncoder(f).Encode(data); err != nil {
+		t.Fatalf("failed to encode data: %v", err)
+	}
+	_ = f.Close()
 
 	fetcher := New()
 	ctx := context.Background()
@@ -444,7 +448,7 @@ func TestFetchAll(t *testing.T) {
 				"banner1": {"url1"},
 			},
 		}
-		json.NewEncoder(w).Encode(data)
+		_ = json.NewEncoder(w).Encode(data)
 	}))
 	defer server1.Close()
 
@@ -455,7 +459,7 @@ func TestFetchAll(t *testing.T) {
 				"banner2": {"url2"},
 			},
 		}
-		json.NewEncoder(w).Encode(data)
+		_ = json.NewEncoder(w).Encode(data)
 	}))
 	defer server2.Close()
 
@@ -483,7 +487,7 @@ func TestFetchAllWithFailure(t *testing.T) {
 	// One working server, one failing
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		data := &BannerData{Version: 1, Linux: map[string][]string{}}
-		json.NewEncoder(w).Encode(data)
+		_ = json.NewEncoder(w).Encode(data)
 	}))
 	defer server.Close()
 
@@ -531,7 +535,7 @@ func TestFetchAllPreservesOrder(t *testing.T) {
 				Version: idx + 1,
 				Linux:   map[string][]string{},
 			}
-			json.NewEncoder(w).Encode(data)
+			_ = json.NewEncoder(w).Encode(data)
 		}))
 		defer servers[i].Close()
 	}
@@ -574,8 +578,8 @@ func TestFetchLocalHomePath(t *testing.T) {
 	testFile := filepath.Join(tmpDir, "test.json")
 	data := &BannerData{Version: 1, Linux: map[string][]string{}}
 	f, _ := os.Create(testFile)
-	json.NewEncoder(f).Encode(data)
-	f.Close()
+	_ = json.NewEncoder(f).Encode(data)
+	_ = f.Close()
 
 	// Create path relative to home
 	relPath := "~" + testFile[len(home):]
@@ -611,7 +615,7 @@ func TestFetchHTTPWithETag(t *testing.T) {
 		// First request - send data with ETag
 		w.Header().Set("ETag", etag)
 		data := &BannerData{Version: 1, Linux: map[string][]string{}}
-		json.NewEncoder(w).Encode(data)
+		_ = json.NewEncoder(w).Encode(data)
 	}))
 	defer server.Close()
 
@@ -667,7 +671,7 @@ func TestFetchHTTPWithLastModified(t *testing.T) {
 
 		w.Header().Set("Last-Modified", lastMod)
 		data := &BannerData{Version: 1, Linux: map[string][]string{}}
-		json.NewEncoder(w).Encode(data)
+		_ = json.NewEncoder(w).Encode(data)
 	}))
 	defer server.Close()
 
@@ -700,14 +704,14 @@ func TestFetchAllWithMeta(t *testing.T) {
 	server1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("ETag", `"s1"`)
 		data := &BannerData{Version: 1, Linux: map[string][]string{"b1": {"u1"}}}
-		json.NewEncoder(w).Encode(data)
+		_ = json.NewEncoder(w).Encode(data)
 	}))
 	defer server1.Close()
 
 	server2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("ETag", `"s2"`)
 		data := &BannerData{Version: 1, Linux: map[string][]string{"b2": {"u2"}}}
-		json.NewEncoder(w).Encode(data)
+		_ = json.NewEncoder(w).Encode(data)
 	}))
 	defer server2.Close()
 
