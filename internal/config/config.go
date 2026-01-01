@@ -126,12 +126,20 @@ func (c *Config) InitConfig() error {
 	}
 	defer f.Close()
 
-	f.WriteString("# basar sources configuration\n")
-	f.WriteString("# One URL or local path per line\n")
-	f.WriteString("# Lines starting with # are comments\n\n")
+	if _, err := f.WriteString("# basar sources configuration\n"); err != nil {
+		return fmt.Errorf("writing config: %w", err)
+	}
+	if _, err := f.WriteString("# One URL or local path per line\n"); err != nil {
+		return fmt.Errorf("writing config: %w", err)
+	}
+	if _, err := f.WriteString("# Lines starting with # are comments\n\n"); err != nil {
+		return fmt.Errorf("writing config: %w", err)
+	}
 
 	for _, src := range DefaultSources {
-		f.WriteString(src + "\n")
+		if _, err := f.WriteString(src + "\n"); err != nil {
+			return fmt.Errorf("writing config: %w", err)
+		}
 	}
 
 	return nil

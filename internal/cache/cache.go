@@ -160,7 +160,7 @@ func (c *Cache) SmartUpdate(ctx context.Context, verbose bool) (bool, error) {
 	for _, r := range results {
 		if r.Err != nil {
 			if verbose {
-				fmt.Fprintf(os.Stderr, "source %s: %v\n", r.Source, r.Err)
+				_, _ = fmt.Fprintf(os.Stderr, "source %s: %v\n", r.Source, r.Err)
 			}
 			// Keep old metadata for failed sources
 			if old, ok := meta.Sources[r.Source]; ok {
@@ -177,11 +177,11 @@ func (c *Cache) SmartUpdate(ctx context.Context, verbose bool) (bool, error) {
 			datasets = append(datasets, r.Data)
 			anyModified = true
 			if verbose {
-				fmt.Fprintf(os.Stderr, "source %s: updated\n", r.Source)
+				_, _ = fmt.Fprintf(os.Stderr, "source %s: updated\n", r.Source)
 			}
 		} else if !r.Modified {
 			if verbose {
-				fmt.Fprintf(os.Stderr, "source %s: not modified\n", r.Source)
+				_, _ = fmt.Fprintf(os.Stderr, "source %s: not modified\n", r.Source)
 			}
 			// Load existing data for unmodified sources
 			if existing := c.loadExistingBanners(); existing != nil {
@@ -191,7 +191,12 @@ func (c *Cache) SmartUpdate(ctx context.Context, verbose bool) (bool, error) {
 	}
 
 	// Save metadata regardless
-	c.saveMeta(newMeta)
+	if err := c.saveMeta(newMeta); err != nil {
+		// Log error but don't fail - metadata is best-effort
+		if verbose {
+			fmt.Fprintf(os.Stderr, "warning: failed to save metadata: %v\n", err)
+		}
+	}
 
 	if !anyModified && c.IsValid() {
 		return false, nil
@@ -276,7 +281,7 @@ func (c *Cache) acquireLock() error {
 			return ErrLocked
 		}
 		// Stale lock - remove it
-		os.Remove(c.cfg.LockFile)
+		_ = os.Remove(c.cfg.LockFile) // Ignore error - stale lock cleanup
 	}
 
 	pid := strconv.Itoa(os.Getpid())
@@ -289,7 +294,7 @@ func (c *Cache) acquireLock() error {
 
 // releaseLock removes the lock file.
 func (c *Cache) releaseLock() {
-	os.Remove(c.cfg.LockFile)
+	_ = os.Remove(c.cfg.LockFile) // Ignore error - cleanup in defer
 }
 
 // write atomically writes banner data to cache file.
@@ -309,25 +314,25 @@ func (c *Cache) write(data *fetcher.BannerData) error {
 	enc.SetEscapeHTML(false)
 
 	if err := enc.Encode(data); err != nil {
-		f.Close()
-		os.Remove(tmp)
+		_ = f.Close()
+		_ = os.Remove(tmp)
 		return fmt.Errorf("encoding JSON: %w", err)
 	}
 
 	if err := f.Sync(); err != nil {
-		f.Close()
-		os.Remove(tmp)
+		_ = f.Close()
+		_ = os.Remove(tmp)
 		return fmt.Errorf("syncing file: %w", err)
 	}
 
 	if err := f.Close(); err != nil {
-		os.Remove(tmp)
+		_ = os.Remove(tmp)
 		return fmt.Errorf("closing file: %w", err)
 	}
 
 	// Atomic rename
 	if err := os.Rename(tmp, c.cfg.CacheFile); err != nil {
-		os.Remove(tmp)
+		_ = os.Remove(tmp)
 		return fmt.Errorf("renaming cache file: %w", err)
 	}
 
@@ -481,39 +486,39 @@ func (c *Cache) Setup(ctx context.Context, verbose bool) error {
 			return fmt.Errorf("creating config: %w", err)
 		}
 		if verbose {
-			fmt.Fprintf(os.Stderr, "created config: %s\n", c.cfg.ConfigFile)
+			_, _ = fmt.Fprintf(os.Stderr, "created config: %s\n", c.cfg.ConfigFile)
 		}
 	}
 
 	// 2. Initial update
 	if verbose {
-		fmt.Fprintf(os.Stderr, "updating cache from %d sources...\n", len(c.cfg.Sources))
+		_, _ = fmt.Fprintf(os.Stderr, "updating cache from %d sources...\n", len(c.cfg.Sources))
 	}
 	if err := c.Update(ctx, true); err != nil {
 		return fmt.Errorf("updating cache: %w", err)
 	}
 	if verbose {
 		stats := c.Stats()
-		fmt.Fprintf(os.Stderr, "cached %d banners\n", stats.Entries)
+		_, _ = fmt.Fprintf(os.Stderr, "cached %d banners\n", stats.Entries)
 	}
 
 	// 3. Configure volatility3
 	if err := c.ConfigureVolatility3(); err != nil {
 		if verbose {
-			fmt.Fprintf(os.Stderr, "warning: %v\n", err)
+			_, _ = fmt.Fprintf(os.Stderr, "warning: %v\n", err)
 		}
 	} else if verbose {
-		fmt.Fprintf(os.Stderr, "configured volatility3\n")
+		_, _ = fmt.Fprintf(os.Stderr, "configured volatility3\n")
 	}
 
 	// 4. Install systemd service (Linux only)
 	if runtime.GOOS == "linux" {
 		if err := c.InstallService(); err != nil {
 			if verbose {
-				fmt.Fprintf(os.Stderr, "warning: service install failed: %v\n", err)
+				_, _ = fmt.Fprintf(os.Stderr, "warning: service install failed: %v\n", err)
 			}
 		} else if verbose {
-			fmt.Fprintf(os.Stderr, "installed systemd timer (runs twice monthly)\n")
+			_, _ = fmt.Fprintf(os.Stderr, "installed systemd timer (runs twice monthly)\n")
 		}
 	}
 
