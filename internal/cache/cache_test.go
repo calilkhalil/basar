@@ -692,10 +692,16 @@ func TestConfigureVolatility3(t *testing.T) {
 	cfg := testConfig(t)
 
 	// Point vol3 config to temp dir
+	// Set both HOME (Unix) and USERPROFILE (Windows) for cross-platform compatibility
 	home := cfg.CacheDir // Use temp dir as fake home
 	origHome := os.Getenv("HOME")
+	origUserProfile := os.Getenv("USERPROFILE")
 	os.Setenv("HOME", home)
-	defer os.Setenv("HOME", origHome)
+	os.Setenv("USERPROFILE", home)
+	defer func() {
+		os.Setenv("HOME", origHome)
+		os.Setenv("USERPROFILE", origUserProfile)
+	}()
 
 	c := New(cfg)
 
@@ -723,10 +729,16 @@ func TestConfigureVolatility3(t *testing.T) {
 func TestConfigureVolatility3AlreadyExists(t *testing.T) {
 	cfg := testConfig(t)
 
+	// Set both HOME (Unix) and USERPROFILE (Windows) for cross-platform compatibility
 	home := cfg.CacheDir
 	origHome := os.Getenv("HOME")
+	origUserProfile := os.Getenv("USERPROFILE")
 	os.Setenv("HOME", home)
-	defer os.Setenv("HOME", origHome)
+	os.Setenv("USERPROFILE", home)
+	defer func() {
+		os.Setenv("HOME", origHome)
+		os.Setenv("USERPROFILE", origUserProfile)
+	}()
 
 	// Create existing config with remote_isf_url
 	vol3Config := filepath.Join(home, ".volatility3.yaml")
