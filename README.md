@@ -20,17 +20,12 @@ The problem: finding the right ISF file manually is tedious. You need to:
 
 **basar automates this.** It maintains a local cache of kernel banners → symbol URL mappings from multiple community sources ([Abyss-W4tcher](https://github.com/Abyss-W4tcher/volatility3-symbols), [leludo84](https://github.com/leludo84/vol3-linux-profiles), etc.). When you run Volatility3 with `$(basar)`, it automatically finds the right symbols.
 
-```
-┌─────────────┐     ┌─────────────┐     ┌──────────────────┐
-│ memory.dmp  │────▶│ volatility3 │────▶│ basar cache      │
-│             │     │ -u $(basar) │     │ (banners.json)   │
-└─────────────┘     └─────────────┘     └────────┬─────────┘
-                                                 │
-                           ┌─────────────────────┼─────────────────────┐
-                           ▼                     ▼                     ▼
-                    ┌─────────────┐       ┌─────────────┐       ┌─────────────┐
-                    │ Abyss repo  │       │ leludo repo │       │ local ISFs  │
-                    └─────────────┘       └─────────────┘       └─────────────┘
+```mermaid
+graph LR
+    A[memory.dmp] -->|volatility3 -u $(basar)| B[basar cache<br/>banners.json]
+    B --> C[Abyss repo]
+    B --> D[leludo repo]
+    B --> E[local ISFs]
 ```
 
 ## Features
