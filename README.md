@@ -22,7 +22,7 @@ The problem: finding the right ISF file manually is tedious. You need to:
 
 ```mermaid
 graph LR
-    A[memory.dmp] -->|volatility3 -u $(basar)| B[basar cache<br/>banners.json]
+    A[memory.dmp] -->|volatility3 -u basar| B[basar cache<br/>banners.json]
     B --> C[Abyss repo]
     B --> D[leludo repo]
     B --> E[local ISFs]
