@@ -58,6 +58,13 @@ const (
 	exitInvalid = 2
 )
 
+// Version information (set by ldflags during build)
+var (
+	version   = "dev"
+	commit    = "unknown"
+	buildDate = "unknown"
+)
+
 // Flags holds parsed command-line flags.
 type Flags struct {
 	Path           bool
@@ -73,6 +80,7 @@ type Flags struct {
 	ConfigureVol3  bool
 	Verbose        bool
 	Help           bool
+	Version        bool
 }
 
 func main() {
@@ -88,6 +96,15 @@ func run(args []string, stdout, stderr io.Writer) int {
 
 	if flags.Help {
 		printUsage(stdout)
+		return exitOK
+	}
+
+	if flags.Version {
+		fmt.Fprintf(stdout, "basar %s\n", version)
+		if version == "dev" || commit != "unknown" {
+			fmt.Fprintf(stdout, "  commit: %s\n", commit)
+			fmt.Fprintf(stdout, "  built:  %s\n", buildDate)
+		}
 		return exitOK
 	}
 
@@ -258,6 +275,8 @@ func parseFlags(args []string) (*Flags, error) {
 	fs.BoolVar(&flags.Verbose, "verbose", false, "")
 	fs.BoolVar(&flags.Help, "h", false, "")
 	fs.BoolVar(&flags.Help, "help", false, "")
+	fs.BoolVar(&flags.Version, "V", false, "")
+	fs.BoolVar(&flags.Version, "version", false, "")
 
 	if err := fs.Parse(args); err != nil {
 		return nil, err
@@ -284,6 +303,7 @@ Options:
       --install-service install systemd timer for auto-updates
       --configure-vol3  configure volatility3 to use basar
   -v, --verbose         enable verbose output
+  -V, --version         show version information
   -h, --help            show this help
 
 Environment:

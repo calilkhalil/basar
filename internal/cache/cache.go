@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/calilkhalil/basar/internal/config"
@@ -155,6 +156,7 @@ func (c *Cache) SmartUpdate(ctx context.Context, verbose bool) (bool, error) {
 
 	var datasets []*fetcher.BannerData
 	anyModified := false
+	anyNotModified := false
 	newMeta := &fetcher.MetaCache{Sources: make(map[string]fetcher.SourceMeta)}
 
 	for _, r := range results {
@@ -180,13 +182,17 @@ func (c *Cache) SmartUpdate(ctx context.Context, verbose bool) (bool, error) {
 				_, _ = fmt.Fprintf(os.Stderr, "source %s: updated\n", r.Source)
 			}
 		} else if !r.Modified {
+			anyNotModified = true
 			if verbose {
 				_, _ = fmt.Fprintf(os.Stderr, "source %s: not modified\n", r.Source)
 			}
-			// Load existing data for unmodified sources
-			if existing := c.loadExistingBanners(); existing != nil {
-				datasets = append(datasets, existing)
-			}
+		}
+	}
+
+	// If some sources weren't modified, include existing cache data once
+	if anyNotModified {
+		if existing := c.loadExistingBanners(); existing != nil {
+			datasets = append(datasets, existing)
 		}
 	}
 
@@ -268,27 +274,60 @@ func (c *Cache) Ensure(ctx context.Context) error {
 	return c.Update(ctx, false)
 }
 
-// acquireLock attempts to acquire an exclusive lock.
+// acquireLock attempts to acquire an exclusive lock using atomic file creation.
 func (c *Cache) acquireLock() error {
 	if err := os.MkdirAll(c.cfg.CacheDir, DirMode); err != nil {
 		return fmt.Errorf("creating cache dir: %w", err)
 	}
 
-	info, err := os.Stat(c.cfg.LockFile)
+	// Try to create lock file atomically with O_EXCL
+	// This prevents race conditions between check and create
+	pid := strconv.Itoa(os.Getpid())
+
+	f, err := os.OpenFile(c.cfg.LockFile, os.O_WRONLY|os.O_CREATE|os.O_EXCL, FileMode)
 	if err == nil {
-		// Lock exists - check if stale
-		if time.Since(info.ModTime()) < LockTimeout {
-			return ErrLocked
-		}
-		// Stale lock - remove it
-		_ = os.Remove(c.cfg.LockFile) // Ignore error - stale lock cleanup
+		// Successfully created lock
+		_, _ = f.WriteString(pid)
+		_ = f.Close()
+		return nil
 	}
 
-	pid := strconv.Itoa(os.Getpid())
-	if err := os.WriteFile(c.cfg.LockFile, []byte(pid), FileMode); err != nil {
+	// Lock file exists - check if stale
+	if !os.IsExist(err) {
 		return fmt.Errorf("creating lock: %w", err)
 	}
 
+	info, statErr := os.Stat(c.cfg.LockFile)
+	if statErr != nil {
+		// Lock was removed between OpenFile and Stat - retry once
+		f, err = os.OpenFile(c.cfg.LockFile, os.O_WRONLY|os.O_CREATE|os.O_EXCL, FileMode)
+		if err == nil {
+			_, _ = f.WriteString(pid)
+			_ = f.Close()
+			return nil
+		}
+		return ErrLocked
+	}
+
+	// Check if lock is stale
+	if time.Since(info.ModTime()) < LockTimeout {
+		return ErrLocked
+	}
+
+	// Stale lock - try to remove and recreate atomically
+	if err := os.Remove(c.cfg.LockFile); err != nil && !os.IsNotExist(err) {
+		return ErrLocked
+	}
+
+	// Try to create again
+	f, err = os.OpenFile(c.cfg.LockFile, os.O_WRONLY|os.O_CREATE|os.O_EXCL, FileMode)
+	if err != nil {
+		// Another process beat us to it
+		return ErrLocked
+	}
+
+	_, _ = f.WriteString(pid)
+	_ = f.Close()
 	return nil
 }
 
@@ -371,7 +410,7 @@ func (c *Cache) ConfigureVolatility3() error {
 			return fmt.Errorf("reading volatility3 config: %w", err)
 		}
 
-		if contains(string(existing), "remote_isf_url") {
+		if strings.Contains(string(existing), "remote_isf_url") {
 			// Already has remote_isf_url, update it
 			// For simplicity, just append a comment
 			return fmt.Errorf("volatility3 config already has remote_isf_url, please update manually: %s", vol3Config)
@@ -523,17 +562,4 @@ func (c *Cache) Setup(ctx context.Context, verbose bool) error {
 	}
 
 	return nil
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsImpl(s, substr))
-}
-
-func containsImpl(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }

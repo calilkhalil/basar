@@ -84,9 +84,15 @@ func parseTTL(s string, defaultVal time.Duration) time.Duration {
 }
 
 // loadSources reads sources from config file or returns defaults.
+// Returns defaults if config file doesn't exist.
+// Logs warning to stderr for other errors (permissions, etc).
 func (c *Config) loadSources() []string {
 	f, err := os.Open(c.ConfigFile)
 	if err != nil {
+		if !os.IsNotExist(err) {
+			// Log non-existence errors (permissions, etc)
+			fmt.Fprintf(os.Stderr, "basar: warning: could not read config %s: %v\n", c.ConfigFile, err)
+		}
 		return DefaultSources
 	}
 	defer f.Close()
@@ -100,6 +106,13 @@ func (c *Config) loadSources() []string {
 			continue
 		}
 		sources = append(sources, line)
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintf(os.Stderr, "basar: warning: error reading config %s: %v\n", c.ConfigFile, err)
+		if len(sources) == 0 {
+			return DefaultSources
+		}
 	}
 
 	if len(sources) == 0 {

@@ -136,7 +136,8 @@ func TestParseFlags(t *testing.T) {
 			check: func(f *Flags) bool {
 				return !f.Path && !f.URI && !f.Stats && !f.Check &&
 					!f.Update && !f.Clear && !f.Init && !f.Verbose && !f.Help &&
-					!f.SmartUpdate && !f.Setup && !f.InstallService && !f.ConfigureVol3
+					!f.SmartUpdate && !f.Setup && !f.InstallService && !f.ConfigureVol3 &&
+					!f.Version
 			},
 		},
 		{
@@ -148,6 +149,16 @@ func TestParseFlags(t *testing.T) {
 			name:  "help long",
 			args:  []string{"--help"},
 			check: func(f *Flags) bool { return f.Help },
+		},
+		{
+			name:  "version short",
+			args:  []string{"-V"},
+			check: func(f *Flags) bool { return f.Version },
+		},
+		{
+			name:  "version long",
+			args:  []string{"--version"},
+			check: func(f *Flags) bool { return f.Version },
 		},
 		{
 			name:  "path short",
@@ -286,6 +297,34 @@ func TestRunHelp(t *testing.T) {
 	}
 	if !strings.Contains(output, "--update") {
 		t.Error("help output should contain '--update'")
+	}
+}
+
+func TestRunVersion(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	code := run([]string{"--version"}, &stdout, &stderr)
+
+	if code != exitOK {
+		t.Errorf("run(--version) = %d, expected %d", code, exitOK)
+	}
+
+	output := stdout.String()
+	if !strings.Contains(output, "basar") {
+		t.Error("version output should contain 'basar'")
+	}
+}
+
+func TestRunVersionShort(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	code := run([]string{"-V"}, &stdout, &stderr)
+
+	if code != exitOK {
+		t.Errorf("run(-V) = %d, expected %d", code, exitOK)
+	}
+
+	output := stdout.String()
+	if !strings.Contains(output, "basar") {
+		t.Error("version output should contain 'basar'")
 	}
 }
 
@@ -651,6 +690,7 @@ func TestPrintUsage(t *testing.T) {
 		"--install-service",
 		"--configure-vol3",
 		"--verbose",
+		"--version",
 		"--help",
 		"BASAR_TTL",
 		"BASAR_VERBOSE",
